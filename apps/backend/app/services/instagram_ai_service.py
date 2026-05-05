@@ -84,15 +84,15 @@ class InstagramAIService:
         else:
             context_parts.append("Legenda: (não disponível)")
 
+        combined_ocr = " ".join(ocr_texts).strip()
+
         if len(ocr_texts) > 1:
             # Carousel: present each slide's text with its index
             context_parts.append(f"Carrossel com {slide_count} slides:")
             for i, text in enumerate(ocr_texts):
                 context_parts.append(f"  Slide {i + 1}: {text[:500]}")
-        elif ocr_texts:
-            combined_ocr = ocr_texts[0].strip()
-            if combined_ocr:
-                context_parts.append(f"Texto detectado por OCR: {combined_ocr[:2000]}")
+        elif combined_ocr:
+            context_parts.append(f"Texto detectado por OCR: {combined_ocr[:2000]}")
 
         if username:
             context_parts.append(f"Autor: @{username}")
