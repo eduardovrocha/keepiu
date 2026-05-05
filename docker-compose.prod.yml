@@ -129,17 +129,6 @@ services:
     expose:
       - "80"
 
-  # ── Landing page (static, served by nginx inside the image) ───────────────
-  landing:
-    build:
-      context: ./apps/landing
-      dockerfile: Dockerfile
-    container_name: keepiu-landing
-    restart: unless-stopped
-    # Not exposed directly — Nginx reverse-proxy routes to it
-    expose:
-      - "80"
-
   # ── Nginx reverse proxy + TLS ───────────────────────────────────────────────
   nginx:
     build:
