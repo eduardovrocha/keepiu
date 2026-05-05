@@ -30,12 +30,12 @@ const typeLabels = {
 }
 
 const typeColors = {
-  text: 'bg-blue-100 text-blue-700',
-  link: 'bg-green-100 text-green-700',
-  image: 'bg-purple-100 text-purple-700',
-  forward: 'bg-gray-100 text-gray-700',
-  audio: 'bg-amber-100 text-amber-700',
-  video: 'bg-rose-100 text-rose-700',
+  text: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400',
+  link: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400',
+  image: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-400',
+  forward: 'bg-muted text-muted-foreground',
+  audio: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+  video: 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400',
 }
 
 // ── Processing progress ───────────────────────────────────────────────────────
@@ -54,8 +54,8 @@ function ProcessingProgress({ stage }: { stage: string | null }) {
   const currentIdx = PIPELINE_STAGES.findIndex((s) => s.key === stage)
 
   return (
-    <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
-      <p className="text-sm font-medium text-amber-800 flex items-center gap-2 mb-3">
+    <div className="rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30 p-4">
+      <p className="text-sm font-medium text-amber-800 dark:text-amber-300 flex items-center gap-2 mb-3">
         <Loader2 className="w-4 h-4 animate-spin shrink-0" />
         Processando conteúdo…
       </p>
@@ -63,7 +63,6 @@ function ProcessingProgress({ stage }: { stage: string | null }) {
         {PIPELINE_STAGES.map((s, i) => {
           const done = currentIdx > i
           const active = currentIdx === i
-          const pending = currentIdx < i
           return (
             <li key={s.key} className="flex items-center gap-2 text-xs">
               {done ? (
@@ -74,7 +73,7 @@ function ProcessingProgress({ stage }: { stage: string | null }) {
                 <Clock className="w-3.5 h-3.5 shrink-0 text-muted-foreground/40" />
               )}
               <span className={cn(
-                done ? 'text-green-700 line-through' : active ? 'text-amber-800 font-medium' : 'text-muted-foreground/60',
+                done ? 'text-green-700 dark:text-green-500 line-through' : active ? 'text-amber-800 dark:text-amber-300 font-medium' : 'text-muted-foreground/60',
               )}>
                 {s.label}
               </span>
@@ -104,10 +103,10 @@ function TranscriptCard({ content }: { content: Content }) {
   }
 
   return (
-    <Card className="p-6 border-amber-100">
+    <Card className="p-6">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center">
-          <Mic className="w-4 h-4 text-amber-600" />
+        <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950 border border-amber-100 dark:border-amber-800 flex items-center justify-center">
+          <Mic className="w-4 h-4 text-amber-600 dark:text-amber-400" />
         </div>
         <h3 className="font-semibold text-foreground">Transcrição de Áudio</h3>
         {content.transcript_language && (
@@ -177,7 +176,7 @@ function InstagramIntelligenceCard({ content }: { content: Content }) {
   if (!hasIntelligence) return null
 
   return (
-    <Card className="p-6 border-pink-100">
+    <Card className="p-6">
       <div className="flex items-center gap-3 mb-5">
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center">
           <Instagram className="w-4 h-4 text-white" />
@@ -274,7 +273,7 @@ function InstagramIntelligenceCard({ content }: { content: Content }) {
             {content.tags.map((tag) => (
               <span
                 key={tag}
-                className="px-2 py-0.5 rounded-md bg-pink-50 text-pink-700 text-xs font-medium"
+                className="px-2 py-0.5 rounded-md bg-pink-100 dark:bg-pink-950 text-pink-700 dark:text-pink-400 text-xs font-medium"
               >
                 #{tag}
               </span>
@@ -353,19 +352,19 @@ export function ContentDetail() {
               {content.title || 'Untitled'}
             </h1>
             {isInstagram && (
-              <span className="flex-shrink-0 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-pink-100 to-purple-100 px-3 py-1 text-sm font-medium text-pink-700">
+              <span className="flex-shrink-0 inline-flex items-center gap-1 rounded-full bg-pink-100 dark:bg-pink-950 px-3 py-1 text-sm font-medium text-pink-700 dark:text-pink-400">
                 <Instagram className="w-4 h-4" />
                 Instagram
               </span>
             )}
             {channel === 'whatsapp' && (
-              <span className="flex-shrink-0 inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">
+              <span className="flex-shrink-0 inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-950 px-3 py-1 text-sm font-medium text-emerald-700 dark:text-emerald-400">
                 <MessageCircle className="w-4 h-4" />
                 WhatsApp
               </span>
             )}
             {channel === 'telegram' && (
-              <span className="flex-shrink-0 inline-flex items-center gap-1 rounded-full bg-sky-100 px-3 py-1 text-sm font-medium text-sky-700">
+              <span className="flex-shrink-0 inline-flex items-center gap-1 rounded-full bg-sky-100 dark:bg-sky-950 px-3 py-1 text-sm font-medium text-sky-700 dark:text-sky-400">
                 <Send className="w-4 h-4" />
                 Telegram
               </span>
@@ -392,7 +391,7 @@ export function ContentDetail() {
           )}
           <button
             onClick={handleDelete}
-            className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+            className="p-2 rounded-lg text-destructive hover:bg-destructive/10 transition-colors"
           >
             <Trash2 className="w-5 h-5" />
           </button>
@@ -491,9 +490,9 @@ export function ContentDetail() {
       )}
 
       {content.processing_error && content.status === 'failed' && (
-        <div className="rounded-lg bg-red-50 border border-red-200 p-4">
-          <p className="text-sm font-medium text-red-700 mb-1">Erro no processamento</p>
-          <p className="text-xs text-red-600 font-mono">{content.processing_error}</p>
+        <div className="rounded-lg bg-destructive/5 border border-destructive/30 p-4">
+          <p className="text-sm font-medium text-destructive mb-1">Erro no processamento</p>
+          <p className="text-xs text-destructive/80 font-mono">{content.processing_error}</p>
         </div>
       )}
     </div>

@@ -28,9 +28,9 @@ function errorColor(rate: number): string {
 }
 
 function errorBadge(rate: number): string {
-  if (rate < 0.05) return 'bg-green-50 text-green-700 ring-green-200'
-  if (rate <= 0.15) return 'bg-amber-50 text-amber-700 ring-amber-200'
-  return 'bg-red-50 text-red-700 ring-red-200'
+  if (rate < 0.05) return 'bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400 ring-green-200 dark:ring-green-800'
+  if (rate <= 0.15) return 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-400 ring-amber-200 dark:ring-amber-800'
+  return 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-400 ring-red-200 dark:ring-red-800'
 }
 
 function SummaryCard({
@@ -43,7 +43,7 @@ function SummaryCard({
   valueClass?: string
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card px-5 py-4 shadow-sm">
+    <div className="rounded-xl border border-border bg-card px-5 py-4">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className={cn('text-2xl font-semibold mt-1', valueClass ?? 'text-foreground')}>
         {value}
@@ -56,7 +56,7 @@ function TaskCard({ task }: { task: TaskMetrics }) {
   const hasData = task.processed_last_1h > 0
 
   return (
-    <div className="rounded-xl border border-border bg-card shadow-sm p-5 space-y-4">
+    <div className="rounded-xl border border-border bg-card p-5 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold text-foreground">{task.name}</p>
@@ -115,7 +115,7 @@ function TaskCard({ task }: { task: TaskMetrics }) {
 
 function SkeletonCard() {
   return (
-    <div className="rounded-xl border border-border bg-card shadow-sm p-5 space-y-4 animate-pulse">
+    <div className="rounded-xl border border-border bg-card p-5 space-y-4 animate-pulse">
       <div className="flex items-center justify-between">
         <div className="h-4 w-24 rounded bg-muted" />
         <div className="h-5 w-16 rounded-full bg-muted" />
@@ -175,7 +175,7 @@ export function Workers() {
             {[...Array(4)].map((_, i) => (
               <div
                 key={i}
-                className="rounded-xl border border-border bg-card px-5 py-4 shadow-sm animate-pulse space-y-2"
+                className="rounded-xl border border-border bg-card px-5 py-4 animate-pulse space-y-2"
               >
                 <div className="h-3 w-20 rounded bg-muted" />
                 <div className="h-7 w-12 rounded bg-muted" />

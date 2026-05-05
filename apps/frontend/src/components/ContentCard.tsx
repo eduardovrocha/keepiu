@@ -18,58 +18,65 @@ const typeIcons: Record<string, React.ElementType> = {
 }
 
 const typeColors: Record<string, string> = {
-  text: 'bg-blue-100 text-blue-700',
-  link: 'bg-green-100 text-green-700',
-  image: 'bg-purple-100 text-purple-700',
-  forward: 'bg-gray-100 text-gray-700',
-  file: 'bg-orange-100 text-orange-700',
+  text:    'bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400',
+  link:    'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400',
+  image:   'bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400',
+  forward: 'bg-muted text-muted-foreground',
+  file:    'bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400',
 }
 
 function StatusBadge({ status }: { status: Content['status'] }) {
-  if (status === 'queued') {
-    return (
-      <div className="mt-3 flex items-center gap-2">
-        <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
-        <span className="text-xs text-muted-foreground">Na fila</span>
-      </div>
-    )
-  }
-  if (status === 'processing') {
-    return (
-      <div className="mt-3 flex items-center gap-2">
-        <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
-        <span className="text-xs text-amber-600">Processando…</span>
-      </div>
-    )
-  }
-  if (status === 'failed') {
-    return (
-      <div className="mt-3 flex items-center gap-2">
-        <div className="h-1.5 w-1.5 rounded-full bg-red-500" />
-        <span className="text-xs text-red-600">Falhou</span>
-      </div>
-    )
-  }
+  if (status === 'queued') return (
+    <div className="mt-3 flex items-center gap-2">
+      <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+      <span className="text-xs text-muted-foreground">Queued</span>
+    </div>
+  )
+  if (status === 'processing') return (
+    <div className="mt-3 flex items-center gap-2">
+      <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
+      <span className="text-xs text-amber-600 dark:text-amber-400">Processing…</span>
+    </div>
+  )
+  if (status === 'failed') return (
+    <div className="mt-3 flex items-center gap-2">
+      <div className="h-1.5 w-1.5 rounded-full bg-red-500" />
+      <span className="text-xs text-red-500">Failed</span>
+    </div>
+  )
+  return null
+}
+
+function PlatformBadge({ platform }: { platform: string | null }) {
+  if (platform === 'instagram') return (
+    <span className="flex-shrink-0 inline-flex items-center gap-1 rounded-full bg-pink-100 dark:bg-pink-950 px-2 py-0.5 text-xs font-medium text-pink-600 dark:text-pink-400">
+      <Instagram className="h-3 w-3" />Instagram
+    </span>
+  )
+  if (platform === 'youtube') return (
+    <span className="flex-shrink-0 inline-flex items-center gap-1 rounded-full bg-red-100 dark:bg-red-950 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">
+      <Youtube className="h-3 w-3" />YouTube
+    </span>
+  )
+  if (platform === 'linkedin') return (
+    <span className="flex-shrink-0 inline-flex items-center gap-1 rounded-full bg-blue-100 dark:bg-blue-950 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
+      <Linkedin className="h-3 w-3" />LinkedIn
+    </span>
+  )
   return null
 }
 
 function ChannelBadge({ channel }: { channel: string | null }) {
-  if (channel === 'whatsapp') {
-    return (
-      <span className="flex-shrink-0 inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-        <MessageCircle className="h-3 w-3" />
-        WhatsApp
-      </span>
-    )
-  }
-  if (channel === 'telegram') {
-    return (
-      <span className="flex-shrink-0 inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700">
-        <Send className="h-3 w-3" />
-        Telegram
-      </span>
-    )
-  }
+  if (channel === 'whatsapp') return (
+    <span className="flex-shrink-0 inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+      <MessageCircle className="h-3 w-3" />WhatsApp
+    </span>
+  )
+  if (channel === 'telegram') return (
+    <span className="flex-shrink-0 inline-flex items-center gap-1 rounded-full bg-sky-100 dark:bg-sky-950 px-2 py-0.5 text-xs font-medium text-sky-600 dark:text-sky-400">
+      <Send className="h-3 w-3" />Telegram
+    </span>
+  )
   return null
 }
 
@@ -90,7 +97,7 @@ export function ContentCard({ content }: ContentCardProps) {
   return (
     <Link
       to={`/content/${content.id}`}
-      className="group block rounded-xl border border-border bg-card p-5 shadow-sm transition-all hover:shadow-md hover:border-primary/20 overflow-hidden"
+      className="group block rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/30 hover:bg-card overflow-hidden"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3 min-w-0 flex-1">
@@ -98,28 +105,11 @@ export function ContentCard({ content }: ContentCardProps) {
             <Icon className="h-4 w-4" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-2 min-w-0 flex-wrap">
               <h4 className="font-medium text-foreground truncate">
                 {content.title || content.raw_text?.slice(0, 60) || 'Untitled'}
               </h4>
-              {platform === 'instagram' && (
-                <span className="flex-shrink-0 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-pink-100 to-purple-100 px-2 py-0.5 text-xs font-medium text-pink-700">
-                  <Instagram className="h-3 w-3" />
-                  Instagram
-                </span>
-              )}
-              {platform === 'youtube' && (
-                <span className="flex-shrink-0 inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-                  <Youtube className="h-3 w-3" />
-                  YouTube
-                </span>
-              )}
-              {platform === 'linkedin' && (
-                <span className="flex-shrink-0 inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                  <Linkedin className="h-3 w-3" />
-                  LinkedIn
-                </span>
-              )}
+              <PlatformBadge platform={platform} />
               <ChannelBadge channel={content.ingestion_channel} />
             </div>
             <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
@@ -137,16 +127,11 @@ export function ContentCard({ content }: ContentCardProps) {
           </span>
         )}
         {content.tags?.slice(0, 3).map((tag) => (
-          <span
-            key={tag}
-            className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
-          >
+          <span key={tag} className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
             #{tag}
           </span>
         ))}
-        <span className="ml-auto text-xs text-muted-foreground">
-          {formatDate(content.created_at)}
-        </span>
+        <span className="ml-auto text-xs text-muted-foreground">{formatDate(content.created_at)}</span>
       </div>
 
       <StatusBadge status={content.status} />

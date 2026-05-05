@@ -224,8 +224,8 @@ export function WhatsAppCard({ noCard = false }: { noCard?: boolean }) {
           className={cn(
             'mt-4 flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm border',
             toast.ok
-              ? 'bg-green-50 text-green-800 border-green-200'
-              : 'bg-red-50 text-red-800 border-red-200',
+              ? 'bg-green-50 dark:bg-green-950 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800'
+              : 'bg-red-50 dark:bg-red-950 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800',
           )}
         >
           {toast.ok ? (
@@ -244,8 +244,8 @@ export function WhatsAppCard({ noCard = false }: { noCard?: boolean }) {
   return (
     <Card className="p-6">
       <div className="flex items-center gap-2 mb-5">
-        <div className="p-2 rounded-lg bg-green-50 border border-green-100">
-          <MessageCircle className="w-4 h-4 text-green-600" />
+        <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950 border border-emerald-100 dark:border-emerald-800">
+          <MessageCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
         </div>
         <div>
           <h2 className="text-base font-semibold text-foreground">WhatsApp Business</h2>
@@ -254,7 +254,7 @@ export function WhatsAppCard({ noCard = false }: { noCard?: boolean }) {
         <span
           className={cn(
             'ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
-            isConfigured ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground',
+            isConfigured ? 'bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-400' : 'bg-muted text-muted-foreground',
           )}
         >
           {isConfigured ? (

@@ -130,7 +130,7 @@ export function ProcessingDetailModal({ contentId, onClose }: Props) {
                         <div
                           className={cn(
                             'flex items-center gap-1 rounded-full px-2 py-0.5 text-xs',
-                            isCurrent && !isQueued && 'bg-amber-50 font-medium text-amber-700 ring-1 ring-amber-200',
+                            isCurrent && !isQueued && 'bg-amber-50 dark:bg-amber-950 font-medium text-amber-700 dark:text-amber-400 ring-1 ring-amber-200 dark:ring-amber-800',
                             isCurrent && isQueued && 'bg-muted text-muted-foreground',
                             isPast && 'text-muted-foreground/40',
                             !isCurrent && !isPast && 'text-muted-foreground/30'
@@ -149,8 +149,8 @@ export function ProcessingDetailModal({ contentId, onClose }: Props) {
 
               {/* Completed state */}
               {isCompleted && (
-                <div className="rounded-lg border border-green-100 bg-green-50 px-4 py-3 text-center">
-                  <p className="text-sm font-medium text-green-700">
+                <div className="rounded-lg border border-green-100 dark:border-green-800/30 bg-green-50 dark:bg-green-950/20 px-4 py-3 text-center">
+                  <p className="text-sm font-medium text-green-700 dark:text-green-400">
                     Processamento concluído
                   </p>
                 </div>
@@ -158,15 +158,15 @@ export function ProcessingDetailModal({ contentId, onClose }: Props) {
 
               {/* Error */}
               {isFailed && content.processing_error && (
-                <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3">
-                  <p className="mb-0.5 text-xs font-medium text-red-700">Erro</p>
-                  <p className="text-xs text-red-600">{content.processing_error}</p>
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
+                  <p className="mb-0.5 text-xs font-medium text-destructive">Erro</p>
+                  <p className="text-xs text-destructive/80">{content.processing_error}</p>
                 </div>
               )}
 
               {isFailed && !content.processing_error && (
-                <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-center">
-                  <p className="text-sm font-medium text-red-700">
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-center">
+                  <p className="text-sm font-medium text-destructive">
                     Falha no processamento
                   </p>
                 </div>

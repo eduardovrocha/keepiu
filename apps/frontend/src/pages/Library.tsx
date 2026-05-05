@@ -1,25 +1,99 @@
-import { useState } from 'react'
-import { Filter, Grid, List, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import {
+  Filter, Grid, List, ChevronLeft, ChevronRight, X, ChevronDown, Check,
+  Instagram, Globe, Clock, Loader2, CheckCircle2, XCircle, Hash,
+} from 'lucide-react'
 import { useContents, useCategories } from '../hooks/useContents'
 import { ContentCard } from '../components/ContentCard'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { cn } from '../utils/cn'
+import { normalizeCategories } from '../utils/categories'
 
 const PAGE_SIZE = 20
+
+// ── Dropdown ───────────────────────────────────────────────────────────────────
+
+interface DropdownOption { label: string; value: string; icon?: React.ElementType }
+
+function FilterDropdown({
+  value,
+  onChange,
+  options,
+  placeholder,
+}: {
+  value: string
+  onChange: (v: string) => void
+  options: DropdownOption[]
+  placeholder: string
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const selected = options.find((o) => o.value === value)
+  const isActive = !!value
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={cn(
+          'flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm transition-colors',
+          isActive
+            ? 'border-primary/40 bg-primary/8 text-primary'
+            : 'border-border bg-background text-foreground hover:bg-muted'
+        )}
+      >
+        <span>{selected ? selected.label : placeholder}</span>
+        <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', open && 'rotate-180')} />
+      </button>
+
+      {open && (
+        <div className="absolute top-full left-0 mt-1 z-50 min-w-[200px] w-max rounded-lg border border-border bg-card shadow-lg overflow-hidden">
+          {[{ label: placeholder, value: '', icon: undefined }, ...options].map((opt) => {
+            const Icon = opt.icon
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => { onChange(opt.value); setOpen(false) }}
+                className={cn(
+                  'w-full flex items-center gap-2 px-3 py-2 text-sm text-left transition-colors',
+                  opt.value === value
+                    ? 'bg-primary/8 text-primary'
+                    : 'text-foreground hover:bg-muted'
+                )}
+              >
+                {Icon && <Icon className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />}
+                <span className="flex-1">{opt.label}</span>
+                {opt.value === value && opt.value !== '' && (
+                  <Check className="w-3.5 h-3.5 shrink-0" />
+                )}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function Library() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [selectedCategory, setSelectedCategory] = useState<string>('')
-  const [selectedType, setSelectedType] = useState<string>('')
-  const [selectedChannel, setSelectedChannel] = useState<string>('')
   const [selectedSource, setSelectedSource] = useState<string>('')
   const [selectedStatus, setSelectedStatus] = useState<string>('')
   const [page, setPage] = useState(1)
 
   const { data: contents, isLoading } = useContents({
     category: selectedCategory || undefined,
-    type: selectedType || undefined,
-    ingestion_channel: selectedChannel || undefined,
     source_platform: selectedSource || undefined,
     status: selectedStatus || undefined,
     page,
@@ -32,22 +106,23 @@ export function Library() {
   const canPrev = page > 1
   const canNext = page < totalPages
 
-  const handleFilterChange =
-    (setter: (v: string) => void) => (e: React.ChangeEvent<HTMLSelectElement>) => {
-      setter(e.target.value)
-      setPage(1)
-    }
+  const setFilter = (setter: (v: string) => void) => (v: string) => {
+    setter(v)
+    setPage(1)
+  }
 
-  const hasFilters = selectedCategory || selectedType || selectedChannel || selectedSource || selectedStatus
+  const hasFilters = selectedCategory || selectedSource || selectedStatus
 
   const clearFilters = () => {
     setSelectedCategory('')
-    setSelectedType('')
-    setSelectedChannel('')
     setSelectedSource('')
     setSelectedStatus('')
     setPage(1)
   }
+
+  const categoryOptions: DropdownOption[] = normalizeCategories(categories ?? []).map(
+    ({ label, value, count }) => ({ value, label: `${label} (${count})`, icon: Hash })
+  )
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -89,79 +164,45 @@ export function Library() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2 text-muted-foreground mr-1">
           <Filter className="w-4 h-4" />
           <span className="text-sm">Filtros:</span>
         </div>
 
-        {/* Channel */}
-        <select
-          value={selectedChannel}
-          onChange={handleFilterChange(setSelectedChannel)}
-          className="px-3 py-1.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-        >
-          <option value="">Todos os canais</option>
-          <option value="telegram">Telegram</option>
-          <option value="whatsapp">WhatsApp</option>
-        </select>
-
-        {/* Source platform */}
-        <select
+        <FilterDropdown
           value={selectedSource}
-          onChange={handleFilterChange(setSelectedSource)}
-          className="px-3 py-1.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-        >
-          <option value="">Todas as fontes</option>
-          <option value="instagram">Instagram</option>
-          <option value="web">Web</option>
-        </select>
+          onChange={setFilter(setSelectedSource)}
+          placeholder="Todas as fontes"
+          options={[
+            { label: 'Instagram', value: 'instagram', icon: Instagram },
+            { label: 'Web', value: 'web', icon: Globe },
+          ]}
+        />
 
-        {/* Type */}
-        <select
-          value={selectedType}
-          onChange={handleFilterChange(setSelectedType)}
-          className="px-3 py-1.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-        >
-          <option value="">Todos os tipos</option>
-          <option value="text">Texto</option>
-          <option value="link">Link</option>
-          <option value="image">Imagem</option>
-          <option value="file">Arquivo</option>
-          <option value="forward">Forward</option>
-        </select>
-
-        {/* Status */}
-        <select
+        <FilterDropdown
           value={selectedStatus}
-          onChange={handleFilterChange(setSelectedStatus)}
-          className="px-3 py-1.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-        >
-          <option value="">Todos os status</option>
-          <option value="queued">Pendente</option>
-          <option value="processing">Processando</option>
-          <option value="completed">Concluído</option>
-          <option value="failed">Falhou</option>
-        </select>
+          onChange={setFilter(setSelectedStatus)}
+          placeholder="Todos os status"
+          options={[
+            { label: 'Pendente',     value: 'queued',      icon: Clock },
+            { label: 'Processando',  value: 'processing',  icon: Loader2 },
+            { label: 'Concluído',    value: 'completed',   icon: CheckCircle2 },
+            { label: 'Falhou',       value: 'failed',      icon: XCircle },
+          ]}
+        />
 
-        {/* Category */}
-        <select
+        <FilterDropdown
           value={selectedCategory}
-          onChange={handleFilterChange(setSelectedCategory)}
-          className="px-3 py-1.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-        >
-          <option value="">Todas as categorias</option>
-          {categories?.map((cat) => (
-            <option key={cat.category} value={cat.category}>
-              {cat.category} ({cat.count})
-            </option>
-          ))}
-        </select>
+          onChange={setFilter(setSelectedCategory)}
+          placeholder="Todas as categorias"
+          options={categoryOptions}
+        />
 
         {hasFilters && (
           <button
             onClick={clearFilters}
-            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors ml-1"
           >
             <X className="w-3.5 h-3.5" />
             Limpar

@@ -12,6 +12,7 @@ import { Search } from './pages/Search'
 import { Settings } from './pages/Settings'
 import { Processing } from './pages/Processing'
 import { Workers } from './pages/Workers'
+import { About } from './pages/About'
 import { LoadingSpinner } from './components/LoadingSpinner'
 
 function App() {
@@ -53,6 +54,7 @@ function App() {
           <Route path="/processing" element={<Processing />} />
           <Route path="/workers" element={<Workers />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/about" element={<About />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Layout>

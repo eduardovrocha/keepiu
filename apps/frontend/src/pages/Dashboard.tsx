@@ -7,6 +7,7 @@ import { ContentCard } from '../components/ContentCard'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { Card } from '../components/Card'
 import { ContentBatchButton } from '../components/ContentBatchButton'
+import { normalizeCategories } from '../utils/categories'
 
 export function Dashboard() {
   const queryClient = useQueryClient()
@@ -73,16 +74,16 @@ export function Dashboard() {
       <Card className="p-6">
         <h3 className="font-semibold text-foreground mb-4">Top Categories</h3>
         <div className="flex flex-wrap gap-2">
-          {stats?.top_categories.map((cat) => (
+          {normalizeCategories(stats?.top_categories ?? []).map((cat) => (
             <div
-              key={cat.category}
+              key={cat.label}
               className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted"
             >
-              <span className="text-sm font-medium text-foreground">{cat.category}</span>
+              <span className="text-sm font-medium text-foreground">{cat.label}</span>
               <span className="text-xs text-muted-foreground">{cat.count}</span>
             </div>
           ))}
-          {stats?.top_categories.length === 0 && (
+          {(stats?.top_categories.length ?? 0) === 0 && (
             <p className="text-sm text-muted-foreground">No categories yet</p>
           )}
         </div>

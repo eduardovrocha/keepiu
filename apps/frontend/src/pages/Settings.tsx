@@ -52,8 +52,8 @@ function ToastContainer({ toasts, remove }: { toasts: Toast[]; remove: (id: stri
             'flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium pointer-events-auto',
             'animate-fade-in border',
             t.type === 'success'
-              ? 'bg-green-50 text-green-800 border-green-200'
-              : 'bg-red-50 text-red-800 border-red-200'
+              ? 'bg-green-50 dark:bg-green-950 text-green-800 dark:text-green-300 border-green-200 dark:border-green-800'
+              : 'bg-red-50 dark:bg-red-950 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800'
           )}
         >
           {t.type === 'success' ? (
@@ -288,23 +288,23 @@ function CollapsibleSection({
   subtitle,
   icon,
   badge,
-  defaultOpen = false,
+  open,
+  onToggle,
   children,
 }: {
   title: string
   subtitle?: string
   icon: JSX.Element
   badge?: JSX.Element
-  defaultOpen?: boolean
+  open: boolean
+  onToggle: () => void
   children: React.ReactNode
 }) {
-  const [open, setOpen] = useState(defaultOpen)
-
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden p-0">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={onToggle}
         className="w-full flex items-center gap-3 px-6 py-4 hover:bg-muted/30 transition-colors text-left"
       >
         {icon}
@@ -345,15 +345,71 @@ const CHECK_LABELS: Record<string, string> = {
   bot_url: 'Bot URL',
 }
 
+type CheckState = 'idle' | 'checking' | 'ok' | 'fail'
+
+function CheckRow({ label, state, message }: { label: string; state: CheckState; message?: string }) {
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-3 px-4 py-3 rounded-lg border transition-all duration-300',
+        state === 'idle'     && 'border-border bg-muted/20',
+        state === 'checking' && 'border-border bg-muted/30',
+        state === 'ok'       && 'bg-green-50/60 dark:bg-green-950/20 border-green-100 dark:border-green-800/30',
+        state === 'fail'     && 'bg-red-50/60 dark:bg-red-950/20 border-red-100 dark:border-red-800/30',
+      )}
+    >
+      {state === 'idle'     && <div className="w-4 h-4 shrink-0 rounded-full border-2 border-muted-foreground/25" />}
+      {state === 'checking' && <Loader2 className="w-4 h-4 shrink-0 text-muted-foreground animate-spin" />}
+      {state === 'ok'       && <CheckCircle2 className="w-4 h-4 shrink-0 text-green-600" />}
+      {state === 'fail'     && <XCircle className="w-4 h-4 shrink-0 text-red-500" />}
+
+      <span className={cn(
+        'text-sm flex-1 min-w-0 truncate',
+        (state === 'idle' || state === 'checking') && 'text-muted-foreground',
+        state === 'ok'   && 'text-green-800 dark:text-green-300',
+        state === 'fail' && 'text-red-800 dark:text-red-300',
+      )}>
+        <span className="font-medium">{label}</span>
+        {message && (
+          <span className={cn(
+            'font-normal',
+            state === 'ok'   && 'text-green-700 dark:text-green-400',
+            state === 'fail' && 'text-red-700 dark:text-red-400',
+          )}>
+            {' — '}{message}
+          </span>
+        )}
+      </span>
+    </div>
+  )
+}
+
 function HealthCheckCard() {
   const testMutation = useTestSettings()
   const result = testMutation.data
+  const [revealed, setRevealed] = useState<Record<string, CheckResult>>({})
+
+  useEffect(() => {
+    if (!result) return
+    const timers = Object.entries(result.checks).map(([key, check], i) =>
+      setTimeout(() => setRevealed((prev) => ({ ...prev, [key]: check as CheckResult })), i * 350)
+    )
+    return () => timers.forEach(clearTimeout)
+  }, [result])
+
+  useEffect(() => {
+    if (testMutation.isPending) setRevealed({})
+  }, [testMutation.isPending])
+
+  const allRevealed = result
+    ? Object.keys(CHECK_LABELS).every((k) => k in revealed)
+    : false
 
   return (
-    <div>
-      <div className="flex justify-end mb-4">
+    <div className="space-y-4">
+      <div className="flex justify-end">
         <button
-          onClick={() => testMutation.mutate()}
+          onClick={() => { setRevealed({}); testMutation.mutate() }}
           disabled={testMutation.isPending}
           className={cn(
             'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
@@ -371,84 +427,32 @@ function HealthCheckCard() {
         </button>
       </div>
 
-      {!result && !testMutation.isPending && (
-        <p className="text-sm text-muted-foreground text-center py-4">
-          Click "Run Health Check" to validate all credentials.
-        </p>
-      )}
+      <div className="space-y-2">
+        {Object.entries(CHECK_LABELS).map(([key, label]) => {
+          const r = revealed[key]
+          const state: CheckState =
+            r                      ? (r.ok ? 'ok' : 'fail') :
+            testMutation.isPending ? 'checking' :
+                                     'idle'
+          return <CheckRow key={key} label={label} state={state} message={r?.message} />
+        })}
+      </div>
 
-      {testMutation.isPending && (
-        <div className="space-y-2">
-          {Object.keys(CHECK_LABELS).map((key) => (
-            <div
-              key={key}
-              className="flex items-center gap-3 px-4 py-3 rounded-lg bg-muted/50 animate-pulse"
-            >
-              <div className="w-4 h-4 rounded-full bg-muted" />
-              <span className="text-sm text-muted-foreground">{CHECK_LABELS[key]}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {result && !testMutation.isPending && (
-        <div className="space-y-2">
-          <div
-            className={cn(
-              'flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium mb-3',
-              result.overall
-                ? 'bg-green-50 text-green-800 border border-green-200'
-                : 'bg-red-50 text-red-800 border border-red-200'
-            )}
-          >
-            {result.overall ? (
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-            ) : (
-              <AlertCircle className="w-4 h-4 shrink-0" />
-            )}
-            {result.overall
-              ? 'All checks passed — system is ready'
-              : 'Some checks failed — review the items below'}
-          </div>
-          {Object.entries(result.checks).map(([key, check]: [string, CheckResult]) => (
-            <CheckRow key={key} label={CHECK_LABELS[key] ?? key} check={check} />
-          ))}
+      {allRevealed && result && !result.overall && (
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium border bg-red-50 dark:bg-red-950 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          Some checks failed — review the items below
         </div>
       )}
 
       {testMutation.isError && (
-        <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+        <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-400">
           <XCircle className="w-4 h-4 shrink-0" />
           {(testMutation.error as { response?: { status?: number } })?.response?.status === 403
             ? 'Admin access required to run health check.'
             : 'Failed to run health check. Ensure the backend is reachable.'}
         </div>
       )}
-    </div>
-  )
-}
-
-function CheckRow({ label, check }: { label: string; check: CheckResult }) {
-  return (
-    <div
-      className={cn(
-        'flex items-center gap-3 px-4 py-3 rounded-lg border',
-        check.ok ? 'bg-green-50/60 border-green-100' : 'bg-red-50/60 border-red-100'
-      )}
-    >
-      {check.ok ? (
-        <CheckCircle2 className="w-4 h-4 shrink-0 text-green-600" />
-      ) : (
-        <XCircle className="w-4 h-4 shrink-0 text-red-500" />
-      )}
-      <div className="flex-1 min-w-0">
-        <span className={cn('text-sm font-medium', check.ok ? 'text-green-800' : 'text-red-800')}>
-          {label}
-        </span>
-        <p className={cn('text-xs mt-0.5', check.ok ? 'text-green-700' : 'text-red-700')}>
-          {check.message}
-        </p>
-      </div>
     </div>
   )
 }
@@ -487,9 +491,13 @@ export function Settings() {
   const updateMutation = useUpdateSettings()
   const { toasts, add: addToast, remove: removeToast } = useToast()
 
+  const [openSection, setOpenSection] = useState<string | null>(null)
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({})
   const [dirtyKeys, setDirtyKeys] = useState<Set<string>>(new Set())
   const [savingKeys, setSavingKeys] = useState<Set<string>>(new Set())
+
+  const toggleSection = (id: string) =>
+    setOpenSection((prev) => (prev === id ? null : id))
 
   useEffect(() => {
     if (!settingsList) return
@@ -613,7 +621,7 @@ export function Settings() {
   })
 
   return (
-    <div className="space-y-3 animate-fade-in max-w-2xl">
+    <div className="space-y-3 animate-fade-in">
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-2">
         <div>
@@ -645,9 +653,11 @@ export function Settings() {
       <CollapsibleSection
         title="Telegram"
         subtitle="Bot connection and webhook settings"
+        open={openSection === 'telegram'}
+        onToggle={() => toggleSection('telegram')}
         icon={
-          <div className="p-2 rounded-lg bg-blue-50 border border-blue-100 shrink-0">
-            <Bot className="w-4 h-4 text-blue-600" />
+          <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-100 dark:border-blue-800 shrink-0">
+            <Bot className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           </div>
         }
       >
@@ -702,9 +712,11 @@ export function Settings() {
       <CollapsibleSection
         title="OpenAI"
         subtitle="AI analysis and embedding generation"
+        open={openSection === 'openai'}
+        onToggle={() => toggleSection('openai')}
         icon={
-          <div className="p-2 rounded-lg bg-violet-50 border border-violet-100 shrink-0">
-            <Key className="w-4 h-4 text-violet-600" />
+          <div className="p-2 rounded-lg bg-violet-50 dark:bg-violet-950 border border-violet-100 dark:border-violet-800 shrink-0">
+            <Key className="w-4 h-4 text-violet-600 dark:text-violet-400" />
           </div>
         }
       >
@@ -721,16 +733,18 @@ export function Settings() {
       <CollapsibleSection
         title="WhatsApp Business"
         subtitle="Integração com Meta Cloud API"
+        open={openSection === 'whatsapp'}
+        onToggle={() => toggleSection('whatsapp')}
         icon={
-          <div className="p-2 rounded-lg bg-green-50 border border-green-100 shrink-0">
-            <MessageCircle className="w-4 h-4 text-green-600" />
+          <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950 border border-emerald-100 dark:border-emerald-800 shrink-0">
+            <MessageCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           </div>
         }
         badge={
           <span
             className={cn(
               'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium mr-1',
-              waConfigured ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground',
+              waConfigured ? 'bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-400' : 'bg-muted text-muted-foreground',
             )}
           >
             {waConfigured ? (
@@ -748,9 +762,11 @@ export function Settings() {
       <CollapsibleSection
         title="Pipeline de Processamento"
         subtitle="Configurações de extração e análise de conteúdo"
+        open={openSection === 'pipeline'}
+        onToggle={() => toggleSection('pipeline')}
         icon={
-          <div className="p-2 rounded-lg bg-amber-50 border border-amber-100 shrink-0">
-            <Mic className="w-4 h-4 text-amber-600" />
+          <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950 border border-amber-100 dark:border-amber-800 shrink-0">
+            <Mic className="w-4 h-4 text-amber-600 dark:text-amber-400" />
           </div>
         }
       >
@@ -781,9 +797,11 @@ export function Settings() {
       <CollapsibleSection
         title="Health Check"
         subtitle="Validates credentials by calling external APIs"
+        open={openSection === 'health'}
+        onToggle={() => toggleSection('health')}
         icon={
-          <div className="p-2 rounded-lg bg-orange-50 border border-orange-100 shrink-0">
-            <Activity className="w-4 h-4 text-orange-600" />
+          <div className="p-2 rounded-lg bg-orange-50 dark:bg-orange-950 border border-orange-100 dark:border-orange-800 shrink-0">
+            <Activity className="w-4 h-4 text-orange-600 dark:text-orange-400" />
           </div>
         }
       >
@@ -794,6 +812,8 @@ export function Settings() {
       <CollapsibleSection
         title="Account"
         subtitle="Telegram account linking"
+        open={openSection === 'account'}
+        onToggle={() => toggleSection('account')}
         icon={
           <div className="p-2 rounded-lg bg-muted shrink-0">
             <Webhook className="w-4 h-4 text-muted-foreground" />

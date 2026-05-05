@@ -42,7 +42,7 @@ export function Search() {
               'block w-full pl-12 pr-4 py-4 rounded-xl border bg-card',
               'text-foreground placeholder:text-muted-foreground',
               'focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary',
-              'transition-all shadow-sm'
+              'transition-all'
             )}
           />
           <button
@@ -83,7 +83,7 @@ export function Search() {
           ) : results?.length ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {results.map((result) => (
-                <Card key={result.id} className="p-4 hover:shadow-md transition-shadow">
+                <Card key={result.id} className="p-4 hover:border-primary/30 transition-colors">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium text-foreground truncate">
@@ -93,7 +93,7 @@ export function Search() {
                         {result.summary}
                       </p>
                     </div>
-                    <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                    <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 px-2 py-1 rounded-full">
                       {Math.round(result.similarity_score * 100)}%
                     </span>
                   </div>
@@ -125,20 +125,29 @@ export function Search() {
       )}
 
       {!searchQuery && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Card className="p-6 bg-muted/50">
-            <h3 className="font-medium text-foreground mb-2">Example searches</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>• "AI automation tools"</li>
-              <li>• "Productivity tips"</li>
-              <li>• "Startup advice"</li>
-              <li>• "Marketing strategies"</li>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Card className="flex-1 p-5 bg-muted/50">
+            <h3 className="font-medium text-foreground mb-3">Example searches</h3>
+            <ul className="flex flex-wrap gap-2">
+              {['AI automation tools', 'Productivity tips', 'Startup advice', 'Marketing strategies'].map((q) => (
+                <li key={q}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      (document.querySelector('input[type="text"]') as HTMLInputElement)?.focus()
+                    }}
+                    className="inline-flex items-center px-2.5 py-1 rounded-md bg-background border border-border text-xs text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors"
+                  >
+                    {q}
+                  </button>
+                </li>
+              ))}
             </ul>
           </Card>
 
-          <Card className="p-6 bg-muted/50">
-            <h3 className="font-medium text-foreground mb-2">How it works</h3>
-            <p className="text-sm text-muted-foreground">
+          <Card className="flex-1 p-5 bg-muted/50">
+            <h3 className="font-medium text-foreground mb-3">How it works</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
               Our AI understands the meaning behind your content, not just keywords.
               Search naturally and find exactly what you need.
             </p>

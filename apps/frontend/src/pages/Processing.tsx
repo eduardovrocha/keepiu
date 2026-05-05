@@ -215,7 +215,7 @@ export function Processing() {
         )}
       </div>
 
-      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
         {isLoading ? (
           <>
             <SkeletonRow />

@@ -100,7 +100,7 @@ export function Login() {
             </div>
 
             {error && (
-              <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-600">
+              <div className="rounded-lg bg-destructive/5 border border-destructive/30 p-3 text-sm text-destructive">
                 {error}
               </div>
             )}
