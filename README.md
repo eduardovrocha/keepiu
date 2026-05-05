@@ -23,7 +23,7 @@ It works as an automated second brain:
 ## How it works
 
 ```
-Telegram / WhatsApp / Web UI
+Telegram / WhatsApp
          ↓
    Receive content
          ↓
