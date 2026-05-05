@@ -77,10 +77,25 @@ The Telegram and WhatsApp bots are the fastest way to capture content on mobile.
 
 ## Quick Start
 
-**Prerequisites:** Docker Desktop, OpenAI API key, and optionally a Telegram bot token.
+**Prerequisites:** Docker Desktop and an OpenAI API key.
+
+### One-command setup (recommended)
 
 ```bash
-git clone https://github.com/your-org/keepiu.git
+git clone https://github.com/eduardovrocha/keepiu.git
+cd keepiu
+./install.sh
+```
+
+The script handles everything: creates `.env`, generates secrets, prompts for your OpenAI key and vault password, starts all containers, runs migrations, and verifies the app is healthy.
+
+### Manual setup
+
+<details>
+<summary>Expand for step-by-step instructions</summary>
+
+```bash
+git clone https://github.com/eduardovrocha/keepiu.git
 cd keepiu
 cp .env.example .env
 ```
@@ -88,10 +103,16 @@ cp .env.example .env
 Edit `.env` with your credentials (see [Configuration](#configuration) below), then:
 
 ```bash
-docker compose up -d
+docker compose --profile internal-db up -d --build
+docker compose run --rm backend alembic upgrade head
+docker compose restart backend
 ```
 
-This starts:
+</details>
+
+Once running, open `http://localhost:5173` and log in with the password you set in `APP_PASSWORD`.
+
+**Services started:**
 - PostgreSQL 16 with pgvector
 - Redis
 - FastAPI backend — `http://localhost:8000`
@@ -99,9 +120,119 @@ This starts:
 - React frontend — `http://localhost:5173`
 - Landing page — `http://localhost:5174`
 
-Open `http://localhost:5173` and log in with the password you set in `APP_PASSWORD`.
-
 The landing page at `http://localhost:5174` is a static SPA (Next.js → nginx) and runs independently from the backend.
+
+---
+
+## Webhooks em Localhost (ngrok)
+
+O Telegram e o WhatsApp entregam mensagens via **webhook HTTP POST** — ou seja, eles precisam conseguir alcançar o seu servidor. Em localhost isso não funciona sem um túnel público.
+
+> Se você vai usar apenas a interface web (`http://localhost:5173`) sem bots, pule esta seção.
+
+### Por que ngrok?
+
+Quando a aplicação roda localmente, o endereço `http://localhost:8000` não é acessível pela internet. O Telegram e a API do WhatsApp Business precisam de uma URL pública com HTTPS para entregar os eventos. O ngrok cria um túnel que expõe sua porta local com uma URL pública.
+
+```
+Telegram / WhatsApp
+        ↓
+https://xxxx.ngrok-free.app/webhooks/telegram   ← URL pública (ngrok)
+        ↓
+http://localhost:8000/webhooks/telegram          ← seu backend local
+```
+
+### Instalação
+
+**macOS:**
+```bash
+brew install ngrok
+```
+
+**Linux:**
+```bash
+curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null
+echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+sudo apt update && sudo apt install ngrok
+```
+
+**Windows / outros:** baixe em [ngrok.com/download](https://ngrok.com/download) e adicione ao PATH.
+
+### Configuração
+
+1. Crie uma conta gratuita em [ngrok.com](https://ngrok.com) e obtenha seu authtoken.
+
+2. Autentique o ngrok:
+```bash
+ngrok config add-authtoken SEU_AUTHTOKEN_AQUI
+```
+
+3. Inicie o túnel apontando para o backend (porta 8000):
+```bash
+ngrok http 8000
+```
+
+4. Copie a URL gerada — ela aparece na saída do ngrok:
+```
+Forwarding   https://xxxx-xx-xx-xxx-xx.ngrok-free.app -> http://localhost:8000
+```
+
+> A URL muda a cada reinicialização do ngrok na conta gratuita. Para uma URL fixa, use um domínio estático no plano pago ou configure um domínio próprio.
+
+### Configurar o Webhook do Telegram
+
+Com o túnel rodando, registre o webhook no Telegram via API:
+
+```bash
+curl -X POST "https://api.telegram.org/bot<SEU_BOT_TOKEN>/setWebhook" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://xxxx.ngrok-free.app/webhooks/telegram",
+    "secret_token": "signalvault-webhook-secret"
+  }'
+```
+
+Substitua:
+- `<SEU_BOT_TOKEN>` pelo token do seu bot (do [@BotFather](https://t.me/BotFather))
+- `xxxx.ngrok-free.app` pela URL gerada pelo ngrok
+- `signalvault-webhook-secret` pelo valor de `TELEGRAM_WEBHOOK_SECRET` no seu `.env`
+
+Verifique se o webhook foi registrado:
+```bash
+curl "https://api.telegram.org/bot<SEU_BOT_TOKEN>/getWebhookInfo"
+```
+
+### Configurar o Webhook do WhatsApp
+
+No [Meta for Developers](https://developers.facebook.com):
+
+1. Acesse seu app → **WhatsApp → Configuration → Webhook**
+2. Em **Callback URL**, informe:
+   ```
+   https://xxxx.ngrok-free.app/webhooks/whatsapp
+   ```
+3. Em **Verify Token**, informe o valor de `WHATSAPP_VERIFY_TOKEN` do seu `.env`
+4. Clique em **Verify and Save**
+5. Assine os campos: `messages`
+
+### Variáveis de ambiente relevantes
+
+```env
+# Telegram
+TELEGRAM_BOT_TOKEN=seu-token-aqui
+TELEGRAM_WEBHOOK_SECRET=signalvault-webhook-secret   # mesmo valor usado no setWebhook
+
+# WhatsApp
+WHATSAPP_VERIFY_TOKEN=seu-verify-token-aqui
+WHATSAPP_ACCESS_TOKEN=seu-access-token-aqui
+WHATSAPP_PHONE_NUMBER_ID=seu-phone-number-id
+WHATSAPP_APP_SECRET=seu-app-secret-aqui              # usado para validar assinatura HMAC
+
+# URL do frontend (CORS)
+FRONTEND_URL=http://localhost:5173
+```
+
+> Todas essas variáveis também podem ser configuradas pela interface web em **Settings**, sem necessidade de reiniciar a aplicação.
 
 ---
 
