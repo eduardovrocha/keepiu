@@ -1,0 +1,10 @@
+SignalVault Database Migrations
+
+Run migrations:
+    alembic upgrade head
+
+Create new migration:
+    alembic revision --autogenerate -m "description"
+
+Downgrade:
+    alembic downgrade -1

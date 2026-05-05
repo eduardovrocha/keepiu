@@ -1,0 +1,141 @@
+version: '3.8'
+
+# Development compose — uses PostgreSQL + Redis running on the host by default.
+#
+# Self-contained mode (no host services needed):
+#   docker compose --profile internal-db up -d
+#
+# That activates containerised Postgres + Redis and sets DATABASE_URL / REDIS_URL
+# to point at them.  All other functionality is identical.
+
+x-backend-env: &backend-env
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+  TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-signalvault-webhook-secret}
+  JWT_SECRET: ${JWT_SECRET:-signalvault-jwt-secret-change-in-production}
+  ENVIRONMENT: ${ENVIRONMENT:-development}
+  FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+  WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
+  WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
+  WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
+  WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
+  SETTINGS_ENCRYPTION_KEY: ${SETTINGS_ENCRYPTION_KEY:-}
+  APP_MODE: ${APP_MODE:-multi_user}
+  APP_PASSWORD: ${APP_PASSWORD:-}
+  SESSION_SECRET: ${SESSION_SECRET:-}
+  PROCESSING_MODE: ${PROCESSING_MODE:-worker}
+  INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME:-}
+
+services:
+
+  # ── Internal DB + Redis (activated via --profile internal-db) ───────────────
+  db:
+    image: ankane/pgvector:v0.5.1
+    container_name: keepiu-db
+    profiles: ["internal-db"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-signalvault}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-signalvault}
+      POSTGRES_DB: ${POSTGRES_DB:-signalvault}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-signalvault}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: keepiu-redis
+    profiles: ["internal-db"]
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ── Backend API ────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: keepiu-backend
+    environment:
+      <<: *backend-env
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:password@host.docker.internal:5432/signalvault}
+      REDIS_URL: ${REDIS_URL:-redis://host.docker.internal:6379/0}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./apps/backend:/app
+      - /app/__pycache__
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # Skip entrypoint in dev — run migrations manually when needed:
+    #   docker compose run --rm backend alembic upgrade head
+    entrypoint: []
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  worker:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: keepiu-worker
+    environment:
+      <<: *backend-env
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:password@host.docker.internal:5432/signalvault}
+      REDIS_URL: ${REDIS_URL:-redis://host.docker.internal:6379/0}
+    volumes:
+      - ./apps/backend:/app
+      - /app/__pycache__
+      - worker_data:/tmp
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    entrypoint: []
+    command: celery -A app.workers.celery_app worker --loglevel=info -Q processing,default
+
+  flower:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: keepiu-flower
+    environment:
+      CELERY_BROKER_URL: ${REDIS_URL:-redis://host.docker.internal:6379/0}
+    ports:
+      - "5555:5555"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - worker
+    entrypoint: []
+    command: >
+      celery -A app.workers.celery_app flower
+        --port=5555
+        --basic_auth=${FLOWER_BASIC_AUTH:-admin:changeme}
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile.dev
+    container_name: keepiu-frontend
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+      VITE_TELEGRAM_BOT_LINK: ${VITE_TELEGRAM_BOT_LINK:-}
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./apps/frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  worker_data:
+  postgres_data:
+  redis_data:
