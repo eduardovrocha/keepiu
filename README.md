@@ -43,7 +43,6 @@ Telegram / WhatsApp
 ### Ingestion
 - **Telegram bot** — send text, links, images, audio, video, or forwarded messages
 - **WhatsApp** — receive content via WhatsApp Business API webhook
-- **Web UI** — submit Instagram post URLs directly from the dashboard
 
 ### Processing
 - **OCR** — extract text from images using Tesseract
