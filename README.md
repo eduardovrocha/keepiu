@@ -97,8 +97,11 @@ This starts:
 - FastAPI backend — `http://localhost:8000`
 - Celery worker + Flower (`http://localhost:5555`)
 - React frontend — `http://localhost:5173`
+- Landing page — `http://localhost:5174`
 
 Open `http://localhost:5173` and log in with the password you set in `APP_PASSWORD`.
+
+The landing page at `http://localhost:5174` is a static SPA (Next.js → nginx) and runs independently from the backend.
 
 ---
 
