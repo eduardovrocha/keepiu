@@ -1,24 +1,24 @@
-# Keepiu — Guia de Instalação Local
+# Keepiu — Local Installation Guide
 
-> **Objetivo:** Rodar o Keepiu localmente do zero, sem conhecimento prévio do projeto.
-> Se não for possível rodar em menos de 10 minutos, a documentação está incompleta.
+> **Goal:** Run Keepiu locally from scratch, with no prior knowledge of the project.
+> If it takes more than 10 minutes to get running, the documentation is incomplete.
 
 ---
 
-## Pré-requisitos do Ambiente
+## Environment Prerequisites
 
-**Obrigatório:**
+**Required:**
 - [Docker](https://docs.docker.com/get-docker/) ≥ 24.0
-- Docker Compose ≥ 2.20 (incluso no Docker Desktop)
-- Conta OpenAI com API Key válida
+- Docker Compose ≥ 2.20 (included in Docker Desktop)
+- OpenAI account with a valid API key
 
-**Opcional (sem Docker):**
+**Optional (without Docker):**
 - Python 3.12+
 - Node.js 20+
-- PostgreSQL 16 com extensão `pgvector`
+- PostgreSQL 16 with `pgvector` extension
 - Redis 7+
 
-Verificação rápida:
+Quick check:
 ```bash
 docker --version          # Docker version 24.x.x
 docker compose version    # Docker Compose version v2.x.x
@@ -26,67 +26,67 @@ docker compose version    # Docker Compose version v2.x.x
 
 ---
 
-## Modos de Execução
+## Execution Modes
 
-O projeto tem dois eixos de configuração independentes que determinam a complexidade do setup:
+The project has two independent configuration axes that determine setup complexity:
 
-| Variável | Opção A (simples) | Opção B (completo) |
+| Variable | Option A (simple) | Option B (full) |
 |---|---|---|
-| `APP_MODE` | `single_user` — uma senha, sem registro | `multi_user` — cadastro de usuários |
-| `PROCESSING_MODE` | `inline` — sem Redis, tudo síncrono | `worker` — Celery + Redis (assíncrono) |
+| `APP_MODE` | `single_user` — one password, no registration | `multi_user` — user accounts |
+| `PROCESSING_MODE` | `inline` — no Redis, synchronous | `worker` — Celery + Redis (async) |
 
-**Para rodar localmente com o mínimo de fricção:** use `single_user` + `inline`.
+**For the lowest-friction local setup:** use `single_user` + `inline`.
 
 ---
 
-## Fluxo Completo: Do Zero ao Rodando
+## Complete Flow: From Zero to Running
 
-### Passo 1 — Clone e configure o ambiente
+### Step 1 — Clone and set up the environment
 
 ```bash
-git clone <url-do-repositório> keepiu
+git clone <repository-url> keepiu
 cd keepiu
 cp .env.example .env
 ```
 
-### Passo 2 — Configure o `.env`
+### Step 2 — Configure `.env`
 
-Abra o `.env` e preencha os valores abaixo. O restante pode ficar com os defaults.
+Open `.env` and fill in the values below. Everything else can keep its defaults.
 
-**Configuração mínima funcional:**
+**Minimum working configuration:**
 
 ```env
-# ── OBRIGATÓRIO ────────────────────────────────────────────────────────────
+# ── REQUIRED ──────────────────────────────────────────────────────────────
 
-# Chave OpenAI (GPT-4o, Whisper, embeddings)
+# OpenAI key (GPT-4o, Whisper, embeddings)
 OPENAI_API_KEY=sk-...
 
-# Modo da aplicação — single_user = vault pessoal, uma senha
+# App mode — single_user = personal vault, one password
 APP_MODE=single_user
 
-# Senha de acesso ao vault (obrigatória no single_user)
-APP_PASSWORD=minha-senha-aqui
+# Vault access password (required in single_user mode)
+APP_PASSWORD=your-password-here
 
-# Chave de sessão — gere com o comando abaixo
+# Session signing key — generate with the command below
 # python3 -c "import secrets; print(secrets.token_hex(32))"
-SESSION_SECRET=gere-um-valor-aqui
+SESSION_SECRET=generate-a-value-here
 
-# Chave de criptografia para segredos no banco
+# Encryption key for secrets stored in the database
 # python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-SETTINGS_ENCRYPTION_KEY=gere-um-valor-aqui
+SETTINGS_ENCRYPTION_KEY=generate-a-value-here
 
-# ── SIMPLIFICAÇÃO LOCAL ────────────────────────────────────────────────────
+# ── LOCAL SIMPLIFICATION ──────────────────────────────────────────────────
 
-# Sem Redis — tasks processadas em linha (sem workers, sem Flower)
+# No Redis — tasks processed inline (no workers, no Flower)
 PROCESSING_MODE=inline
 
-# Ambiente de desenvolvimento
+# Development environment
 ENVIRONMENT=development
 
-# URL da API que o frontend vai consumir
+# API URL consumed by the frontend
 VITE_API_URL=http://localhost:8000
 
-# ── OPCIONAL (pode deixar vazio agora) ────────────────────────────────────
+# ── OPTIONAL (can be left empty for now) ─────────────────────────────────
 
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_WEBHOOK_SECRET=signalvault-webhook-secret
@@ -97,7 +97,7 @@ WHATSAPP_APP_SECRET=
 VITE_TELEGRAM_BOT_LINK=
 SENTRY_DSN=
 
-# Banco (usado internamente pelo profile internal-db)
+# Database (used internally by the internal-db profile)
 POSTGRES_USER=signalvault
 POSTGRES_PASSWORD=signalvault
 POSTGRES_DB=signalvault
@@ -106,40 +106,40 @@ JWT_SECRET=signalvault-jwt-secret-change-in-production
 FRONTEND_URL=http://localhost:5173
 ```
 
-Gere os segredos de uma vez:
+Generate both secrets at once:
 ```bash
 python3 -c "import secrets; print('SESSION_SECRET=' + secrets.token_hex(32))"
 python3 -c "from cryptography.fernet import Fernet; print('SETTINGS_ENCRYPTION_KEY=' + Fernet.generate_key().decode())"
 ```
 
-### Passo 3 — Suba os serviços
+### Step 3 — Start the services
 
-O flag `--profile internal-db` ativa PostgreSQL e Redis em containers. Sem ele, o docker-compose espera que eles estejam rodando no host.
+The `--profile internal-db` flag activates PostgreSQL and Redis as containers. Without it, docker-compose expects them running on the host.
 
 ```bash
 docker compose --profile internal-db up -d
 ```
 
-Esse comando sobe: `db`, `redis`, `backend`, `worker`, `flower`, `frontend`, `landing`.
+This starts: `db`, `redis`, `backend`, `worker`, `flower`, `frontend`, `landing`.
 
-> Com `PROCESSING_MODE=inline` o `worker` e o `flower` iniciam mas ficam ociosos — não causam problemas, podem ser ignorados.
+> With `PROCESSING_MODE=inline`, `worker` and `flower` start but stay idle — they cause no issues and can be ignored.
 
-Aguarde os containers estabilizarem (~30 segundos):
+Wait for containers to stabilize (~30 seconds):
 ```bash
 docker compose ps
 ```
 
-Todos os serviços devem exibir `Up` ou `healthy`.
+All services should show `Up` or `healthy`.
 
-### Passo 4 — Execute as migrations do banco
+### Step 4 — Run database migrations
 
-No modo de desenvolvimento, as migrations **não rodam automaticamente**. É preciso executar manualmente:
+In development mode, migrations **do not run automatically**. Run them manually:
 
 ```bash
 docker compose run --rm backend alembic upgrade head
 ```
 
-Saída esperada:
+Expected output:
 ```
 INFO  [alembic.runtime.migration] Running upgrade -> 0001, initial schema
 INFO  [alembic.runtime.migration] Running upgrade 0001 -> 0002, add indexes
@@ -147,19 +147,19 @@ INFO  [alembic.runtime.migration] Running upgrade 0001 -> 0002, add indexes
 INFO  [alembic.runtime.migration] Running upgrade 0014 -> 0015, add ocr blocks
 ```
 
-### Passo 5 — Reinicie o backend
+### Step 5 — Restart the backend
 
-Após as migrations, reinicie o backend para que o startup hook crie o usuário owner:
+After migrations, restart the backend so the startup hook creates the owner user:
 
 ```bash
 docker compose restart backend
 ```
 
-### Passo 6 — Acesse a aplicação
+### Step 6 — Access the application
 
-| Serviço | URL | Credenciais |
+| Service | URL | Credentials |
 |---|---|---|
-| Frontend (UI) | http://localhost:5173 | senha = valor de `APP_PASSWORD` |
+| Frontend (UI) | http://localhost:5173 | password = value of `APP_PASSWORD` |
 | Backend API | http://localhost:8000 | — |
 | API Docs | http://localhost:8000/docs | — |
 | Health check | http://localhost:8000/health | — |
@@ -168,26 +168,26 @@ docker compose restart backend
 
 ---
 
-## Portas Utilizadas
+## Ports Used
 
-| Porta | Serviço | Observação |
+| Port | Service | Notes |
 |---|---|---|
-| `5173` | Frontend React (Vite) | Interface principal |
-| `5174` | Landing page (Next.js) | Página pública |
-| `8000` | Backend FastAPI | API REST + webhooks |
-| `5555` | Flower | Monitor de tasks Celery |
-| `5432` | PostgreSQL | Interno, não exposto |
-| `6379` | Redis | Interno, não exposto |
+| `5173` | React frontend (Vite) | Main interface |
+| `5174` | Landing page (Next.js) | Public page |
+| `8000` | FastAPI backend | REST API + webhooks |
+| `5555` | Flower | Celery task monitor |
+| `5432` | PostgreSQL | Internal, not exposed |
+| `6379` | Redis | Internal, not exposed |
 
 ---
 
-## Verificação de Funcionamento
+## Verifying Everything Works
 
-**1. Health check do backend:**
+**1. Backend health check:**
 ```bash
 curl http://localhost:8000/health
 ```
-Resposta esperada:
+Expected response:
 ```json
 {
   "status": "healthy",
@@ -198,101 +198,101 @@ Resposta esperada:
 }
 ```
 
-**2. Verifique os logs do backend:**
+**2. Check backend logs:**
 ```bash
 docker compose logs backend --tail=50
 ```
-Procure por:
+Look for:
 ```
 INFO  Application startup complete
 INFO  Bootstrap: owner account created/found
 INFO  Admin bootstrap complete
 ```
 
-**3. Confirme que o banco foi migrado:**
+**3. Confirm the database was migrated:**
 ```bash
 docker compose exec db psql -U signalvault -d signalvault -c "\dt"
 ```
-Deve listar: `users`, `contents`, `content_embeddings`, `system_settings`, `refresh_tokens`, etc.
+Should list: `users`, `contents`, `content_embeddings`, `system_settings`, `refresh_tokens`, etc.
 
-**4. Acesse a UI e faça login:**
-- Abra http://localhost:5173
-- No modo `single_user`, insira o valor de `APP_PASSWORD`
-- O dashboard deve carregar sem erros
+**4. Access the UI and log in:**
+- Open http://localhost:5173
+- In `single_user` mode, enter the value of `APP_PASSWORD`
+- The dashboard should load without errors
 
 ---
 
-## Variáveis de Ambiente — Referência Completa
+## Environment Variables — Complete Reference
 
-### Obrigatórias
+### Required
 
-| Variável | Propósito | Exemplo |
+| Variable | Purpose | Example |
 |---|---|---|
-| `OPENAI_API_KEY` | GPT-4o (resumos, tags), Whisper (STT), embeddings | `sk-proj-...` |
-| `APP_PASSWORD` | Senha do vault (apenas `single_user`) | `minha-senha` |
-| `SESSION_SECRET` | Assina cookies de sessão (apenas `single_user`) | `token_hex(32)` |
+| `OPENAI_API_KEY` | GPT-4o (summaries, tags), Whisper (STT), embeddings | `sk-proj-...` |
+| `APP_PASSWORD` | Vault password (`single_user` only) | `my-password` |
+| `SESSION_SECRET` | Signs session cookies (`single_user` only) | `token_hex(32)` |
 
-### Fortemente Recomendadas
+### Strongly Recommended
 
-| Variável | Propósito | Default |
+| Variable | Purpose | Default |
 |---|---|---|
-| `SETTINGS_ENCRYPTION_KEY` | Criptografa segredos no banco (tokens, API keys) | vazio (não criptografado) |
-| `APP_MODE` | `single_user` ou `multi_user` | `multi_user` |
-| `PROCESSING_MODE` | `inline` (sem Redis) ou `worker` (Celery) | `worker` |
-| `ENVIRONMENT` | `development` ou `production` | `development` |
+| `SETTINGS_ENCRYPTION_KEY` | Encrypts secrets stored in the database (tokens, API keys) | empty (unencrypted) |
+| `APP_MODE` | `single_user` or `multi_user` | `multi_user` |
+| `PROCESSING_MODE` | `inline` (no Redis) or `worker` (Celery) | `worker` |
+| `ENVIRONMENT` | `development` or `production` | `development` |
 
-### Banco de Dados
+### Database
 
-| Variável | Propósito | Default (internal-db) |
+| Variable | Purpose | Default (internal-db) |
 |---|---|---|
-| `POSTGRES_USER` | Usuário do PostgreSQL | `signalvault` |
-| `POSTGRES_PASSWORD` | Senha do PostgreSQL | `signalvault` |
-| `POSTGRES_DB` | Nome do banco | `signalvault` |
-| `DATABASE_URL` | URL de conexão completa | `postgresql://postgres:password@host.docker.internal:5432/signalvault` |
+| `POSTGRES_USER` | PostgreSQL user | `signalvault` |
+| `POSTGRES_PASSWORD` | PostgreSQL password | `signalvault` |
+| `POSTGRES_DB` | Database name | `signalvault` |
+| `DATABASE_URL` | Full connection URL | `postgresql://postgres:password@host.docker.internal:5432/signalvault` |
 
-### Opcionais (bots e integrações)
+### Optional (bots and integrations)
 
-| Variável | Propósito |
+| Variable | Purpose |
 |---|---|
-| `TELEGRAM_BOT_TOKEN` | Token do bot Telegram (pode configurar via UI depois) |
-| `TELEGRAM_WEBHOOK_SECRET` | Valida requisições do Telegram |
-| `WHATSAPP_VERIFY_TOKEN` | Verificação do webhook Meta |
-| `WHATSAPP_ACCESS_TOKEN` | Access token da API WhatsApp Business |
-| `WHATSAPP_PHONE_NUMBER_ID` | ID do número WhatsApp |
-| `WHATSAPP_APP_SECRET` | Valida assinatura HMAC do webhook |
-| `VITE_TELEGRAM_BOT_LINK` | Link público do bot (ex: `https://t.me/MeuBot`) |
-| `SENTRY_DSN` | Rastreamento de erros (Sentry) |
-| `INITIAL_ADMIN_USERNAME` | Username promovido a admin no startup (`multi_user`) |
-| `FLOWER_BASIC_AUTH` | Auth do Flower (`user:senha`) |
-| `JWT_SECRET` | Segredo JWT (`multi_user`) |
-| `FRONTEND_URL` | URL de origem do frontend (CORS) |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot token (can be configured via UI later) |
+| `TELEGRAM_WEBHOOK_SECRET` | Validates incoming Telegram requests |
+| `WHATSAPP_VERIFY_TOKEN` | Meta webhook verification token |
+| `WHATSAPP_ACCESS_TOKEN` | WhatsApp Business API access token |
+| `WHATSAPP_PHONE_NUMBER_ID` | WhatsApp phone number ID |
+| `WHATSAPP_APP_SECRET` | Validates HMAC webhook signature |
+| `VITE_TELEGRAM_BOT_LINK` | Public bot link (e.g. `https://t.me/MyBot`) |
+| `SENTRY_DSN` | Error tracking (Sentry) |
+| `INITIAL_ADMIN_USERNAME` | Username promoted to admin on startup (`multi_user`) |
+| `FLOWER_BASIC_AUTH` | Flower auth (`user:password`) |
+| `JWT_SECRET` | JWT secret (`multi_user`) |
+| `FRONTEND_URL` | Frontend origin for CORS |
 
 ---
 
-## Configuração de Banco de Dados
+## Database Configuration
 
-### Inicialização automática
+### Automatic initialization
 
-Com `--profile internal-db`, o container PostgreSQL é criado com:
+With `--profile internal-db`, the PostgreSQL container is created with:
 - User: `POSTGRES_USER` (default: `signalvault`)
-- Senha: `POSTGRES_PASSWORD` (default: `signalvault`)
+- Password: `POSTGRES_PASSWORD` (default: `signalvault`)
 - Database: `POSTGRES_DB` (default: `signalvault`)
-- Extensão `pgvector` já instalada na imagem `ankane/pgvector:v0.5.1`
+- `pgvector` extension pre-installed in the `ankane/pgvector:v0.5.1` image
 
 ### Migrations
 
 ```bash
-# Rodar todas as migrations (0001 → 0015)
+# Run all migrations (0001 → 0015)
 docker compose run --rm backend alembic upgrade head
 
-# Ver migration atual
+# Check current migration
 docker compose run --rm backend alembic current
 
-# Ver histórico
+# View history
 docker compose run --rm backend alembic history
 ```
 
-### Acessar o banco diretamente
+### Direct database access
 
 ```bash
 docker compose exec db psql -U signalvault -d signalvault
@@ -300,34 +300,34 @@ docker compose exec db psql -U signalvault -d signalvault
 
 ---
 
-## Execução sem Docker (Opcional)
+## Running Without Docker (Optional)
 
-Útil para debug ou desenvolvimento ativo no backend.
+Useful for active backend debugging or development.
 
 ### Backend
 
 ```bash
 cd apps/backend
 
-# Instale as dependências do sistema (macOS)
+# Install system dependencies (macOS)
 brew install tesseract ffmpeg
 
-# Crie um virtualenv
+# Create a virtualenv
 python3 -m venv .venv
 source .venv/bin/activate
 
-# Instale as dependências Python
+# Install Python dependencies
 pip install -r requirements.txt
 
-# Configure as variáveis de ambiente
+# Set environment variables
 export $(cat ../../.env | grep -v '^#' | xargs)
 export DATABASE_URL="postgresql://signalvault:signalvault@localhost:5432/signalvault"
 export REDIS_URL="redis://localhost:6379/0"
 
-# Rode as migrations
+# Run migrations
 alembic upgrade head
 
-# Inicie o servidor
+# Start the server
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
@@ -340,7 +340,7 @@ npm install
 VITE_API_URL=http://localhost:8000 npm run dev
 ```
 
-### Worker Celery (opcional, apenas se `PROCESSING_MODE=worker`)
+### Celery Worker (optional, only if `PROCESSING_MODE=worker`)
 
 ```bash
 cd apps/backend
@@ -350,116 +350,116 @@ celery -A app.workers.celery_app worker --loglevel=info -Q processing,default
 
 ---
 
-## O que Pode ser Desativado (Simplificação)
+## What Can Be Disabled (Simplification)
 
-| Componente | Como desativar | Impacto |
+| Component | How to disable | Impact |
 |---|---|---|
-| Redis + Worker + Flower | `PROCESSING_MODE=inline` no `.env` | Tasks processadas de forma síncrona. Mais lento, sem parallelismo, mas funcional. |
-| Telegram Bot | Não configurar `TELEGRAM_BOT_TOKEN` | Não recebe mensagens via Telegram |
-| WhatsApp Bot | Não configurar `WHATSAPP_*` | Não recebe mensagens via WhatsApp |
-| Landing page | Remover o serviço `landing` do compose | Apenas suprime a página de marketing |
-| Flower | Remover o serviço `flower` do compose | Sem monitor de tasks |
-| Sentry | Não configurar `SENTRY_DSN` | Sem rastreamento de erros |
+| Redis + Worker + Flower | `PROCESSING_MODE=inline` in `.env` | Tasks processed synchronously. Slower, no parallelism, but fully functional. |
+| Telegram Bot | Leave `TELEGRAM_BOT_TOKEN` empty | No Telegram message ingestion |
+| WhatsApp Bot | Leave all `WHATSAPP_*` empty | No WhatsApp message ingestion |
+| Landing page | Remove `landing` service from compose | Suppresses the marketing page only |
+| Flower | Remove `flower` service from compose | No task monitor UI |
+| Sentry | Leave `SENTRY_DSN` empty | No error tracking |
 
-**Setup absolutamente mínimo:** apenas `OPENAI_API_KEY`, `APP_MODE=single_user`, `APP_PASSWORD`, `SESSION_SECRET`, e `PROCESSING_MODE=inline`.
+**Absolute minimum setup:** only `OPENAI_API_KEY`, `APP_MODE=single_user`, `APP_PASSWORD`, `SESSION_SECRET`, and `PROCESSING_MODE=inline`.
 
 ---
 
-## Problemas Comuns
+## Common Issues
 
-### `alembic upgrade head` falha com "connection refused"
+### `alembic upgrade head` fails with "connection refused"
 
-O banco ainda não está pronto. Aguarde o healthcheck passar:
+The database is not ready yet. Wait for the healthcheck to pass:
 ```bash
-docker compose ps  # Confirme que keepiu-db está "healthy"
+docker compose ps  # Confirm keepiu-db shows "healthy"
 docker compose run --rm backend alembic upgrade head
 ```
 
-### Frontend exibe "Network Error" ou 502
+### Frontend shows "Network Error" or 502
 
-O `VITE_API_URL` está errado. Confirme:
+`VITE_API_URL` is misconfigured. Verify:
 ```bash
 curl http://localhost:8000/health
 ```
-Se falhar, verifique os logs:
+If it fails, check the logs:
 ```bash
 docker compose logs backend --tail=30
 ```
 
-### Backend falha com "SETTINGS_ENCRYPTION_KEY not set"
+### Backend warns "SETTINGS_ENCRYPTION_KEY not set"
 
-Em desenvolvimento, gera apenas um warning. Para suprimir, gere e adicione ao `.env`:
+In development this is just a warning. To suppress it, generate and add the key to `.env`:
 ```bash
 python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
-### `host.docker.internal` não resolve (Linux)
+### `host.docker.internal` does not resolve (Linux)
 
-No Linux, não é resolvido automaticamente. Use `--profile internal-db`, ou adicione ao `/etc/hosts`:
+On Linux this is not resolved automatically. Use `--profile internal-db`, or add it to `/etc/hosts`:
 ```bash
 echo "172.17.0.1 host.docker.internal" | sudo tee -a /etc/hosts
 ```
 
-### Migrations rodam mas o usuário owner não é criado
+### Migrations ran but owner user was not created
 
-O usuário owner é criado no startup do backend, não nas migrations. Após rodar `alembic upgrade head`, reinicie:
+The owner user is created at backend startup, not during migrations. After running `alembic upgrade head`, restart:
 ```bash
 docker compose restart backend
 docker compose logs backend | grep -i "bootstrap\|owner\|startup"
 ```
 
-### Porta 5173 ou 8000 já em uso
+### Port 5173 or 8000 already in use
 
 ```bash
 lsof -i :5173
 lsof -i :8000
-# Ou mude a porta no docker-compose.yml: "8001:8000"
+# Or change the port in docker-compose.yml: "8001:8000"
 ```
 
-### Build do backend demora muito
+### Backend image build takes too long
 
-A imagem inclui Tesseract, ffmpeg e Chromium (Playwright). Na primeira build, são esperados 3–5 minutos. Nas subsequentes, usa cache.
+The image includes Tesseract, ffmpeg, and Chromium (Playwright). The first build takes 3–5 minutes. Subsequent builds use the cache.
 
-### Embeddings falham (pgvector)
+### Embeddings fail (pgvector)
 
-Certifique-se de estar usando a imagem `ankane/pgvector:v0.5.1` e não um PostgreSQL padrão. O `--profile internal-db` garante isso automaticamente.
+Make sure you are using the `ankane/pgvector:v0.5.1` image and not a standard PostgreSQL image. The `--profile internal-db` flag guarantees this automatically.
 
 ---
 
-## Checklist de Setup
+## Setup Checklist
 
 ```
-[ ] Docker e Docker Compose instalados
-[ ] Repositório clonado
-[ ] .env criado a partir do .env.example
-[ ] OPENAI_API_KEY preenchida
-[ ] APP_MODE=single_user configurado
-[ ] APP_PASSWORD definida
-[ ] SESSION_SECRET gerado (token_hex(32))
-[ ] PROCESSING_MODE=inline (modo simples) ou worker (com Redis)
-[ ] docker compose --profile internal-db up -d executado
-[ ] docker compose ps — todos os serviços Up/healthy
-[ ] docker compose run --rm backend alembic upgrade head executado
-[ ] docker compose restart backend executado
-[ ] GET http://localhost:8000/health retorna {"status":"healthy"}
-[ ] http://localhost:5173 carrega e aceita login com APP_PASSWORD
+[ ] Docker and Docker Compose installed
+[ ] Repository cloned
+[ ] .env created from .env.example
+[ ] OPENAI_API_KEY set
+[ ] APP_MODE=single_user configured
+[ ] APP_PASSWORD set
+[ ] SESSION_SECRET generated (token_hex(32))
+[ ] PROCESSING_MODE=inline (simple) or worker (with Redis)
+[ ] docker compose --profile internal-db up -d executed
+[ ] docker compose ps — all services Up/healthy
+[ ] docker compose run --rm backend alembic upgrade head executed
+[ ] docker compose restart backend executed
+[ ] GET http://localhost:8000/health returns {"status":"healthy"}
+[ ] http://localhost:5173 loads and accepts login with APP_PASSWORD
 ```
 
 ---
 
-## Resumo dos Comandos
+## Command Summary
 
 ```bash
-# Setup completo do zero
+# Full setup from scratch
 git clone <repo> keepiu && cd keepiu
 cp .env.example .env
-# edite o .env com OPENAI_API_KEY, APP_PASSWORD, SESSION_SECRET
+# edit .env with OPENAI_API_KEY, APP_PASSWORD, SESSION_SECRET
 
 docker compose --profile internal-db up -d
 docker compose run --rm backend alembic upgrade head
 docker compose restart backend
 
-# Verificação
+# Verify
 curl http://localhost:8000/health
 open http://localhost:5173
 ```
